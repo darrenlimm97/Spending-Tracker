@@ -310,7 +310,9 @@ function parseCSV(text) {
   // find header row
   let start=0;
   for(let i=0;i<rows.length;i++){
-    if(rows[i][0].toLowerCase()==="date"){ start=i+1; break; }
+    if(rows[i].some(cell => cell && cell.toLowerCase() === "date")){ 
+      start=i+1; 
+      break; }
   }
 
   const tx = [];

@@ -256,7 +256,7 @@
 
 <script>
 // ─── CONFIG — paste your Transactions Google Sheet ID here ─────────────────
-const TRANSACTIONS_SHEET_ID  = "1dodwruoO49zENQ5kTI6_ODU1adDFm5Ze";
+const TRANSACTIONS_SHEET_ID  = "1tO5WG_WzAW33NluC4XJ7Yf3fYUcqRZ98f-6s28K4QjU";
 const TRANSACTIONS_SHEET_TAB = "Transactions"; // change if your tab is named differently e.g. "Sheet1"
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -310,9 +310,7 @@ function parseCSV(text) {
   // find header row
   let start=0;
   for(let i=0;i<rows.length;i++){
-    if(rows[i].some(cell => cell && cell.toLowerCase() === "date")){ 
-      start=i+1; 
-      break; }
+    if(rows[i][0].toLowerCase()==="date"){ start=i+1; break; }
   }
 
   const tx = [];

@@ -4,28 +4,17 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>💸 Spending Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cormorant+Garamond:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
     :root {
-      --bg:      #1c1f26;
-      --surface: #252931;
-      --surface2:#2f3440;
-      --surface3:#383d4a;
-      --border:  #3a3f4d;
-      --border2: #4a5060;
-      --gold:    #f0c060;
-      --green:   #5ddba8;
-      --red:     #ff7f72;
-      --teal:    #3de8de;
-      --orange:  #ffaa66;
-      --purple:  #b8a0f0;
-      --blue:    #7ec8f8;
-      --text:    #f5f2ee;
-      --text2:   #c8c4bc;
-      --sub:     #8a9099;
-      --mono:    'DM Mono', monospace;
-      --serif:   'Cormorant Garamond', Georgia, serif;
+      --bg:#1c1f26; --surface:#252931; --surface2:#2f3440; --surface3:#383d4a;
+      --border:#3a3f4d; --border2:#4a5060;
+      --gold:#f0c060; --green:#5ddba8; --red:#ff7f72; --teal:#3de8de;
+      --orange:#ffaa66; --purple:#b8a0f0; --blue:#7ec8f8;
+      --text:#f5f2ee; --text2:#c8c4bc; --sub:#8a9099;
+      --mono:'DM Mono',monospace; --serif:'Cormorant Garamond',Georgia,serif;
     }
     body { background:var(--bg); color:var(--text); font-family:var(--mono); min-height:100vh; padding:28px 16px 56px; }
     .wrap { max-width:980px; margin:0 auto; }
@@ -55,25 +44,58 @@
       border-radius:14px; padding:16px 18px; position:relative; overflow:hidden;
     }
     .card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:14px 14px 0 0; }
-    .card.c-spent::before  { background:var(--red); }
-    .card.c-count::before  { background:var(--gold); }
-    .card.c-top::before    { background:var(--blue); }
+    .card.c-spent::before { background:var(--red); }
+    .card.c-count::before { background:var(--gold); }
+    .card.c-top::before   { background:var(--blue); }
     .card .label { font-size:9px; letter-spacing:2.5px; color:var(--sub); margin-bottom:8px; text-transform:uppercase; }
     .card .value { font-family:var(--serif); font-size:26px; font-weight:700; line-height:1; }
     .card .since { font-size:10px; color:var(--sub); margin-top:6px; }
 
-    /* config notice */
-    .config-notice {
+    /* ── donut chart card ── */
+    .chart-card {
       background:var(--surface); border:1px solid var(--border2);
-      border-left:3px solid var(--gold);
-      border-radius:12px; padding:14px 18px; margin-bottom:16px;
-      font-size:11px; color:var(--text2); line-height:1.7;
+      border-radius:16px; padding:22px 24px; margin-bottom:14px;
     }
-    .config-notice strong { color:var(--gold); }
-    .config-notice code {
-      background:var(--surface2); padding:2px 6px; border-radius:4px;
-      font-family:var(--mono); font-size:11px; color:var(--teal);
+    .chart-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:18px; flex-wrap:wrap; gap:10px;
     }
+    .chart-title { font-size:10px; letter-spacing:2px; color:var(--sub); text-transform:uppercase; }
+
+    .month-pills { display:flex; flex-wrap:wrap; gap:6px; }
+    .month-pill {
+      padding:5px 12px; border-radius:20px; font-size:10px; letter-spacing:.5px;
+      cursor:pointer; border:1px solid var(--border2); background:var(--surface2); color:var(--sub);
+      transition:all .15s ease; font-family:var(--mono);
+    }
+    .month-pill:hover { color:var(--text2); border-color:var(--text2); }
+    .month-pill.active { background:#0d2524; border-color:var(--teal); color:var(--teal); font-weight:600; }
+
+    .chart-body {
+      display:grid; grid-template-columns:200px 1fr; gap:28px; align-items:center;
+    }
+    @media(max-width:640px){ .chart-body{ grid-template-columns:1fr; } }
+
+    .donut-wrap { position:relative; height:200px; }
+    .donut-centre {
+      position:absolute; inset:0; display:flex; flex-direction:column;
+      align-items:center; justify-content:center; pointer-events:none;
+    }
+    .donut-centre .dc-label { font-size:9px; letter-spacing:2px; color:var(--sub); margin-bottom:3px; }
+    .donut-centre .dc-value { font-family:var(--serif); font-size:20px; font-weight:700; color:var(--text); }
+    .donut-centre .dc-month { font-size:10px; color:var(--sub); margin-top:2px; }
+
+    .legend-table { width:100%; border-collapse:collapse; }
+    .legend-table tr { border-bottom:1px solid var(--border); }
+    .legend-table tr:last-child { border-bottom:none; }
+    .legend-table tr:hover { background:var(--surface2); }
+    .legend-table td { padding:8px 5px; font-size:11px; vertical-align:middle; }
+    .l-dot { width:9px; height:9px; border-radius:2px; display:inline-block; }
+    .l-cat { color:var(--text2); padding-left:4px; }
+    .l-amt { color:var(--text); font-weight:500; text-align:right; white-space:nowrap; }
+    .l-pct { color:var(--sub); text-align:right; min-width:40px; font-size:10px; }
+    .l-bar-wrap { width:80px; background:var(--surface3); border-radius:3px; height:4px; }
+    .l-bar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
 
     /* filter bar */
     .filter-bar {
@@ -96,8 +118,7 @@
     .filter-reset {
       align-self:flex-end; padding:8px 16px; background:var(--surface2);
       border:1px solid var(--border2); border-radius:8px; color:var(--sub);
-      font-size:11px; font-family:var(--mono); cursor:pointer;
-      transition:all .15s ease;
+      font-size:11px; font-family:var(--mono); cursor:pointer; transition:all .15s ease;
     }
     .filter-reset:hover { color:var(--text); border-color:var(--text2); }
 
@@ -121,7 +142,6 @@
     }
     .table-head span:nth-child(n+3) { text-align:right; }
     .table-head span:nth-child(2)   { text-align:left; }
-
     .tx-row {
       display:grid; grid-template-columns:110px 1fr 150px 120px 110px;
       padding:14px 22px; border-bottom:1px solid var(--border);
@@ -133,19 +153,12 @@
     .tx-desc  { font-size:13px; color:var(--text); }
     .tx-note  { font-size:10px; color:var(--sub); margin-top:2px; }
     .tx-cat   { text-align:right; }
-    .tx-badge {
-      display:inline-block; padding:4px 10px; border-radius:12px;
-      font-size:9px; letter-spacing:1px; font-weight:500;
-    }
+    .tx-badge { display:inline-block; padding:4px 10px; border-radius:12px; font-size:9px; letter-spacing:1px; font-weight:500; }
     .tx-amount { font-size:13px; font-weight:500; text-align:right; }
     .tx-amount.expense { color:var(--red); }
     .tx-amount.income  { color:var(--green); }
     .tx-running { font-size:11px; color:var(--sub); text-align:right; }
-
-    /* empty state */
     .empty-state { text-align:center; padding:48px 20px; color:var(--sub); font-size:13px; line-height:2; }
-
-    /* table footer */
     .table-footer {
       padding:14px 22px; background:var(--surface2); border-top:1px solid var(--border2);
       display:flex; justify-content:space-between; align-items:center;
@@ -172,7 +185,7 @@
   <div id="error-msg">
     ⚠️ Could not load transaction data from Google Sheets.<br/>
     Make sure the sheet is set to <strong>"Anyone with the link — Viewer"</strong><br/>
-    and <strong>TRANSACTIONS_SHEET_ID</strong> below matches your spreadsheet.
+    and the tab is named <strong>Transactions</strong>.
   </div>
 
   <div id="app">
@@ -191,45 +204,53 @@
       </div>
       <div class="card c-top">
         <div class="label">Top Category</div>
-        <div class="value" id="card-top" style="color:var(--blue); font-size:18px; padding-top:3px;">—</div>
+        <div class="value" id="card-top" style="color:var(--blue);font-size:18px;padding-top:3px;">—</div>
         <div class="since" id="card-top-sub">—</div>
       </div>
     </div>
 
-    <!-- Setup notice -->
-    <div class="config-notice fade-in" id="config-notice">
-      <strong>📋 Setup:</strong> Upload <code>SpendingTracker.xlsx</code> to Google Sheets, share it as "Anyone with link — Viewer",
-      then paste your Sheet ID into <code>TRANSACTIONS_SHEET_ID</code> at the top of this file's script section.
-      The Sheet ID is the long string in your Google Sheets URL between <code>/d/</code> and <code>/edit</code>.
+    <!-- Donut breakdown chart -->
+    <div class="chart-card fade-in">
+      <div class="chart-header">
+        <span class="chart-title">Spending Breakdown</span>
+        <div class="month-pills" id="month-pills"></div>
+      </div>
+      <div class="chart-body">
+        <div style="position:relative;">
+          <div class="donut-wrap">
+            <canvas id="donut-chart"></canvas>
+          </div>
+          <div class="donut-centre">
+            <span class="dc-label">TOTAL</span>
+            <span class="dc-value" id="dc-value">—</span>
+            <span class="dc-month" id="dc-month">—</span>
+          </div>
+        </div>
+        <div>
+          <table class="legend-table">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td colspan="2" style="padding:0 5px 8px;font-size:9px;letter-spacing:2px;color:var(--sub)">CATEGORY</td>
+                <td style="padding:0 5px 8px;font-size:9px;letter-spacing:2px;color:var(--sub);text-align:right">AMOUNT</td>
+                <td style="padding:0 5px 8px;font-size:9px;letter-spacing:2px;color:var(--sub);text-align:right">SHARE</td>
+                <td style="padding:0 5px 8px 14px;font-size:9px;color:var(--sub);min-width:90px"></td>
+              </tr>
+            </thead>
+            <tbody id="legend-body"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <!-- Date filter -->
     <div class="filter-bar fade-in">
-      <div class="filter-group">
-        <label>From Day</label>
-        <select id="from-day"></select>
-      </div>
-      <div class="filter-group">
-        <label>Month</label>
-        <select id="from-month"></select>
-      </div>
-      <div class="filter-group">
-        <label>Year</label>
-        <select id="from-year"></select>
-      </div>
+      <div class="filter-group"><label>From Day</label><select id="from-day"></select></div>
+      <div class="filter-group"><label>Month</label><select id="from-month"></select></div>
+      <div class="filter-group"><label>Year</label><select id="from-year"></select></div>
       <div class="arrow-label">→</div>
-      <div class="filter-group">
-        <label>To Day</label>
-        <select id="to-day"></select>
-      </div>
-      <div class="filter-group">
-        <label>Month</label>
-        <select id="to-month"></select>
-      </div>
-      <div class="filter-group">
-        <label>Year</label>
-        <select id="to-year"></select>
-      </div>
+      <div class="filter-group"><label>To Day</label><select id="to-day"></select></div>
+      <div class="filter-group"><label>Month</label><select id="to-month"></select></div>
+      <div class="filter-group"><label>Year</label><select id="to-year"></select></div>
       <button class="filter-reset" id="reset-btn">Reset</button>
     </div>
 
@@ -255,42 +276,42 @@
 </div>
 
 <script>
-// ─── CONFIG — paste your Transactions Google Sheet ID here ─────────────────
+// ─── CONFIG ────────────────────────────────────────────────────────────────
 const TRANSACTIONS_SHEET_ID  = "1tO5WG_WzAW33NluC4XJ7Yf3fYUcqRZ98f-6s28K4QjU";
-const TRANSACTIONS_SHEET_TAB = "Transactions"; // change if your tab is named differently e.g. "Sheet1"
+const TRANSACTIONS_SHEET_TAB = "Transactions";
 // ──────────────────────────────────────────────────────────────────────────
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const DAYS   = Array.from({length:31}, (_,i)=> i+1);
+const DAYS   = Array.from({length:31},(_,i)=>i+1);
 
-const CATEGORIES = [
-  "Dining","Transportation","Rental","Malaysia House Exp",
-  "Health","Tax","Loan","Others"
-];
+const CATEGORIES = ["Dining","Transportation","Rental","Malaysia House Exp","Health","Tax","Loan","Others"];
 
 const CAT_STYLE = {
-  "Dining":             { bg:"#2e2510", border:"#7a6020", color:"var(--gold)",   dot:"var(--gold)" },
-  "Transportation":     { bg:"#0d2524", border:"#1a5550", color:"var(--teal)",   dot:"var(--teal)" },
-  "Rental":             { bg:"#0e1e2e", border:"#204466", color:"var(--blue)",   dot:"var(--blue)" },
-  "Malaysia House Exp": { bg:"#0d2418", border:"#1a5535", color:"var(--green)",  dot:"var(--green)" },
-  "Health":             { bg:"#201830", border:"#4a3880", color:"var(--purple)", dot:"var(--purple)" },
-  "Tax":                { bg:"#2e1e0e", border:"#6a4410", color:"var(--orange)", dot:"var(--orange)" },
-  "Loan":               { bg:"#2e1010", border:"#6a2020", color:"var(--red)",    dot:"var(--red)" },
-  "Others":             { bg:"#222230", border:"#444460", color:"#b0b0c8",       dot:"#b0b0c8" },
+  "Dining":             { bg:"#2e2510", border:"#7a6020", color:"var(--gold)",   dot:"var(--gold)",   hex:"#f0c060" },
+  "Transportation":     { bg:"#0d2524", border:"#1a5550", color:"var(--teal)",   dot:"var(--teal)",   hex:"#3de8de" },
+  "Rental":             { bg:"#0e1e2e", border:"#204466", color:"var(--blue)",   dot:"var(--blue)",   hex:"#7ec8f8" },
+  "Malaysia House Exp": { bg:"#0d2418", border:"#1a5535", color:"var(--green)",  dot:"var(--green)",  hex:"#5ddba8" },
+  "Health":             { bg:"#201830", border:"#4a3880", color:"var(--purple)", dot:"var(--purple)", hex:"#b8a0f0" },
+  "Tax":                { bg:"#2e1e0e", border:"#6a4410", color:"var(--orange)", dot:"var(--orange)", hex:"#ffaa66" },
+  "Loan":               { bg:"#2e1010", border:"#6a2020", color:"var(--red)",    dot:"var(--red)",    hex:"#ff7f72" },
+  "Others":             { bg:"#222230", border:"#444460", color:"#b0b0c8",       dot:"#b0b0c8",       hex:"#b0b0c8" },
 };
 const ALL_STYLE = { bg:"#2a3040", border:"#c8c4bc", color:"var(--text)", dot:"var(--text2)" };
 
 const fmt  = n => "S$" + Math.abs(n).toLocaleString("en-SG",{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtK = n => "S$" + Math.abs(n).toLocaleString("en-SG",{minimumFractionDigits:0,maximumFractionDigits:0});
 const fmtN = n => n.toLocaleString("en-SG");
 
 let allTx = [];
 let activeCategory = "ALL";
+let activeMonth    = "ALL";
+let donutChart     = null;
 
-// ── fetch CSV ───────────────────────────────────────────────────────────────
+// ── fetch CSV ──────────────────────────────────────────────────────────────
 async function fetchData() {
   const url = `https://docs.google.com/spreadsheets/d/${TRANSACTIONS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(TRANSACTIONS_SHEET_TAB)}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error("fetch failed");
+  if(!res.ok) throw new Error("fetch failed");
   return parseCSV(await res.text());
 }
 
@@ -307,233 +328,266 @@ function parseCSV(text) {
     return result;
   });
 
-  // find header row
   let start=0;
   for(let i=0;i<rows.length;i++){
     if(rows[i][0].toLowerCase()==="date"){ start=i+1; break; }
   }
 
-  const tx = [];
+  const tx=[];
   for(let i=start;i<rows.length;i++){
-    const r = rows[i];
-    if(!r[0]||!r[3]) continue;               // skip blank rows
-    const dateStr = r[0];                     // DD/MM/YYYY
-    const parts   = dateStr.split("/");
+    const r=rows[i];
+    if(!r[0]||!r[3]) continue;
+    const dateStr=r[0];
+    const parts=dateStr.split("/");
     if(parts.length!==3) continue;
-    const [dd,mm,yyyy] = parts.map(Number);
+    const [dd,mm,yyyy]=parts.map(Number);
     if(isNaN(dd)||isNaN(mm)||isNaN(yyyy)) continue;
-
-    const amount = parseFloat((r[4]||"0").replace(/,/g,"")) || 0;
+    const amount=parseFloat((r[4]||"0").replace(/,/g,""))||0;
     if(amount===0) continue;
-    const txType  = (r[5]||"Expense").trim();
-
+    const txType=(r[5]||"Expense").trim();
+    const monthKey = `${yyyy}-${String(mm).padStart(2,"0")}`;
     tx.push({
-      dateObj:  new Date(yyyy, mm-1, dd),
-      dateStr,
-      day:      dd, month: mm, year: yyyy,
-      desc:     r[1]||"",
-      notes:    r[2]||"",
-      category: r[3]||"Others",
-      amount,
-      isExpense: txType.toLowerCase()==="expense",
+      dateObj:new Date(yyyy,mm-1,dd),
+      dateStr, day:dd, month:mm, year:yyyy, monthKey,
+      desc:r[1]||"", notes:r[2]||"",
+      category:r[3]||"Others",
+      amount, isExpense:txType.toLowerCase()==="expense",
     });
   }
-  // sort oldest → newest
   tx.sort((a,b)=>a.dateObj-b.dateObj);
   return tx;
 }
 
-// ── build date selects ──────────────────────────────────────────────────────
+// ── build date selects ─────────────────────────────────────────────────────
 function buildSelects() {
-  const years = [...new Set(allTx.map(t=>t.year))].sort((a,b)=>a-b);
+  const years    = [...new Set(allTx.map(t=>t.year))].sort((a,b)=>a-b);
   const earliest = allTx[0];
   const latest   = allTx[allTx.length-1];
-
-  const fill = (id, options, selected) => {
-    const el = document.getElementById(id);
-    el.innerHTML = "";
-    options.forEach(o => {
-      const opt = new Option(o.label, o.value);
-      if(o.value===selected) opt.selected=true;
-      el.appendChild(opt);
-    });
+  const fill = (id,options,selected) => {
+    const el=document.getElementById(id); el.innerHTML="";
+    options.forEach(o=>{ const opt=new Option(o.label,o.value); if(o.value===selected) opt.selected=true; el.appendChild(opt); });
   };
-
-  const dayOpts   = DAYS.map(d=>({label:d,value:d}));
-  const monthOpts = MONTHS.map((m,i)=>({label:m,value:i+1}));
-  const yearOpts  = years.map(y=>({label:y,value:y}));
-
-  fill("from-day",   dayOpts,   earliest.day);
-  fill("from-month", monthOpts, earliest.month);
-  fill("from-year",  yearOpts,  earliest.year);
-  fill("to-day",     dayOpts,   latest.day);
-  fill("to-month",   monthOpts, latest.month);
-  fill("to-year",    yearOpts,  latest.year);
+  fill("from-day",  DAYS.map(d=>({label:d,value:d})),           earliest.day);
+  fill("from-month",MONTHS.map((m,i)=>({label:m,value:i+1})),   earliest.month);
+  fill("from-year", years.map(y=>({label:y,value:y})),           earliest.year);
+  fill("to-day",    DAYS.map(d=>({label:d,value:d})),            latest.day);
+  fill("to-month",  MONTHS.map((m,i)=>({label:m,value:i+1})),   latest.month);
+  fill("to-year",   years.map(y=>({label:y,value:y})),           latest.year);
 }
 
-// ── build category pills ────────────────────────────────────────────────────
-function buildPills() {
-  const container = document.getElementById("cat-pills");
+// ── build month pills for donut ────────────────────────────────────────────
+function buildMonthPills() {
+  const container = document.getElementById("month-pills");
   container.innerHTML = "";
+  const allMonths = [...new Set(allTx.map(t=>t.monthKey))].sort();
 
-  const makeP = (label, key, style) => {
-    const div = document.createElement("div");
-    div.className = "cat-pill" + (key===activeCategory?" active":"");
-    div.dataset.cat = key;
-    div.innerHTML = `<span class="dot" style="background:${style.dot}"></span>${label}`;
-    if(key===activeCategory){
-      div.style.background  = style.bg;
-      div.style.borderColor = style.border;
-      div.style.color       = style.color;
-    }
-    div.addEventListener("click",()=>{ activeCategory=key; buildPills(); renderTable(); });
-    container.appendChild(div);
+  const makePill = (label, key) => {
+    const p = document.createElement("div");
+    p.className = "month-pill" + (activeMonth===key?" active":"");
+    p.textContent = label;
+    p.onclick = () => { activeMonth=key; buildMonthPills(); renderDonut(); };
+    container.appendChild(p);
   };
 
-  makeP("ALL", "ALL", ALL_STYLE);
-  CATEGORIES.forEach(c => makeP(c.toUpperCase(), c, CAT_STYLE[c]||CAT_STYLE["Others"]));
-}
-
-// ── get filter dates ────────────────────────────────────────────────────────
-function getFromDate() {
-  return new Date(
-    parseInt(document.getElementById("from-year").value),
-    parseInt(document.getElementById("from-month").value)-1,
-    parseInt(document.getElementById("from-day").value)
-  );
-}
-function getToDate() {
-  return new Date(
-    parseInt(document.getElementById("to-year").value),
-    parseInt(document.getElementById("to-month").value)-1,
-    parseInt(document.getElementById("to-day").value),
-    23,59,59
-  );
-}
-
-// ── filter transactions ─────────────────────────────────────────────────────
-function getFiltered() {
-  const from = getFromDate();
-  const to   = getToDate();
-  return allTx.filter(t => {
-    const inDate = t.dateObj >= from && t.dateObj <= to;
-    const inCat  = activeCategory==="ALL" || t.category===activeCategory;
-    return inDate && inCat;
+  makePill("ALL", "ALL");
+  allMonths.forEach(mk => {
+    const [y,m] = mk.split("-");
+    makePill(`${MONTHS[parseInt(m)-1]} ${y}`, mk);
   });
 }
 
-// ── render table ─────────────────────────────────────────────────────────────
-function renderTable() {
-  const filtered = getFiltered();
-  const body     = document.getElementById("tx-body");
-  body.innerHTML = "";
+// ── render donut chart ─────────────────────────────────────────────────────
+function renderDonut() {
+  const filtered = activeMonth==="ALL"
+    ? allTx.filter(t=>t.isExpense)
+    : allTx.filter(t=>t.isExpense && t.monthKey===activeMonth);
 
-  if(!filtered.length){
-    body.innerHTML = `<div class="empty-state">No transactions found for this filter.<br/>Try adjusting the date range or category.</div>`;
-    updateCards([]);
-    document.getElementById("foot-label").textContent = "0 transactions";
-    document.getElementById("foot-value").textContent = "S$0.00";
-    return;
+  const bycat={};
+  filtered.forEach(t=>{ bycat[t.category]=(bycat[t.category]||0)+t.amount; });
+  const sorted = Object.entries(bycat).sort((a,b)=>b[1]-a[1]);
+  const total  = sorted.reduce((s,[,v])=>s+v,0);
+  const labels = sorted.map(([k])=>k);
+  const data   = sorted.map(([,v])=>v);
+  const colors = labels.map(l=>(CAT_STYLE[l]||CAT_STYLE["Others"]).hex);
+
+  // centre label
+  document.getElementById("dc-value").textContent = fmtK(total);
+  if(activeMonth==="ALL"){
+    document.getElementById("dc-month").textContent = "All Months";
+  } else {
+    const [y,m]=activeMonth.split("-");
+    document.getElementById("dc-month").textContent = `${MONTHS[parseInt(m)-1]} ${y}`;
   }
 
-  let running = 0;
-  filtered.forEach(t => {
-    if(t.isExpense) running += t.amount;
-    else            running -= t.amount;
+  // chart
+  const ctx = document.getElementById("donut-chart").getContext("2d");
+  if(donutChart) donutChart.destroy();
+  donutChart = new Chart(ctx,{
+    type:"doughnut",
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderColor:"#252931", borderWidth:3, hoverOffset:8 }] },
+    options:{
+      responsive:true, maintainAspectRatio:false, cutout:"70%",
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:"#1a1a2a", borderColor:"#3a3f4d", borderWidth:1,
+          titleColor:"#8a9099", bodyColor:"#f5f2ee",
+          titleFont:{family:"'DM Mono',monospace",size:10},
+          bodyFont:{family:"'DM Mono',monospace",size:12},
+          callbacks:{ label: ctx=>`  ${fmt(ctx.raw)}  (${(ctx.raw/total*100).toFixed(1)}%)` }
+        }
+      }
+    }
+  });
 
-    const s   = CAT_STYLE[t.category] || CAT_STYLE["Others"];
-    const row = document.createElement("div");
-    row.className = "tx-row";
-    const [dd,mm,yyyy] = t.dateStr.split("/");
-    const dateLabel = `${parseInt(dd)} ${MONTHS[parseInt(mm)-1]} ${yyyy}`;
+  // legend
+  const tbody = document.getElementById("legend-body");
+  tbody.innerHTML="";
+  if(!sorted.length){
+    tbody.innerHTML=`<tr><td colspan="5" style="padding:16px;text-align:center;color:var(--sub);font-size:11px">No data for this period</td></tr>`;
+    return;
+  }
+  sorted.forEach(([cat,val],i)=>{
+    const pct  = total>0?(val/total*100):0;
+    const col  = colors[i];
+    const tr   = document.createElement("tr");
+    tr.innerHTML=`
+      <td style="width:14px;padding:8px 4px 8px 0">
+        <span class="l-dot" style="background:${col}"></span>
+      </td>
+      <td class="l-cat">${cat}</td>
+      <td class="l-amt">${fmt(val)}</td>
+      <td class="l-pct">${pct.toFixed(1)}%</td>
+      <td style="padding:8px 0 8px 14px">
+        <div class="l-bar-wrap">
+          <div class="l-bar-fill" style="width:${pct.toFixed(1)}%;background:${col}"></div>
+        </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
 
-    row.innerHTML = `
+// ── build category pills ───────────────────────────────────────────────────
+function buildPills() {
+  const container = document.getElementById("cat-pills");
+  container.innerHTML="";
+  const makeP=(label,key,style)=>{
+    const div=document.createElement("div");
+    div.className="cat-pill"+(key===activeCategory?" active":"");
+    div.dataset.cat=key;
+    div.innerHTML=`<span class="dot" style="background:${style.dot}"></span>${label}`;
+    if(key===activeCategory){ div.style.background=style.bg; div.style.borderColor=style.border; div.style.color=style.color; }
+    div.addEventListener("click",()=>{ activeCategory=key; buildPills(); renderTable(); });
+    container.appendChild(div);
+  };
+  makeP("ALL","ALL",ALL_STYLE);
+  CATEGORIES.forEach(c=>makeP(c.toUpperCase(),c,CAT_STYLE[c]||CAT_STYLE["Others"]));
+}
+
+// ── date helpers ───────────────────────────────────────────────────────────
+function getFromDate(){
+  return new Date(parseInt(document.getElementById("from-year").value),parseInt(document.getElementById("from-month").value)-1,parseInt(document.getElementById("from-day").value));
+}
+function getToDate(){
+  return new Date(parseInt(document.getElementById("to-year").value),parseInt(document.getElementById("to-month").value)-1,parseInt(document.getElementById("to-day").value),23,59,59);
+}
+function getFiltered(){
+  const from=getFromDate(), to=getToDate();
+  return allTx.filter(t=>{
+    const inDate=t.dateObj>=from&&t.dateObj<=to;
+    const inCat=activeCategory==="ALL"||t.category===activeCategory;
+    return inDate&&inCat;
+  });
+}
+
+// ── render table ───────────────────────────────────────────────────────────
+function renderTable(){
+  const filtered=getFiltered();
+  const body=document.getElementById("tx-body");
+  body.innerHTML="";
+  if(!filtered.length){
+    body.innerHTML=`<div class="empty-state">No transactions found for this filter.<br/>Try adjusting the date range or category.</div>`;
+    updateCards([]);
+    document.getElementById("foot-label").textContent="0 transactions";
+    document.getElementById("foot-value").textContent="S$0.00";
+    return;
+  }
+  let running=0;
+  filtered.forEach(t=>{
+    if(t.isExpense) running+=t.amount; else running-=t.amount;
+    const s=CAT_STYLE[t.category]||CAT_STYLE["Others"];
+    const row=document.createElement("div");
+    row.className="tx-row";
+    const [dd,mm,yyyy]=t.dateStr.split("/");
+    const dateLabel=`${parseInt(dd)} ${MONTHS[parseInt(mm)-1]} ${yyyy}`;
+    row.innerHTML=`
       <div class="tx-date">${dateLabel}</div>
       <div class="tx-desc">${t.desc}${t.notes?`<div class="tx-note">${t.notes}</div>`:""}</div>
-      <div class="tx-cat">
-        <span class="tx-badge" style="background:${s.bg};border:1px solid ${s.border};color:${s.color}">
-          ${t.category.toUpperCase()}
-        </span>
-      </div>
-      <div class="tx-amount ${t.isExpense?"expense":"income"}">
-        ${t.isExpense?"−":"+"}${fmt(t.amount)}
-      </div>
+      <div class="tx-cat"><span class="tx-badge" style="background:${s.bg};border:1px solid ${s.border};color:${s.color}">${t.category.toUpperCase()}</span></div>
+      <div class="tx-amount ${t.isExpense?"expense":"income"}">${t.isExpense?"−":"+"}${fmt(t.amount)}</div>
       <div class="tx-running">${fmt(Math.abs(running))}</div>
     `;
     body.appendChild(row);
   });
-
   updateCards(filtered);
-
-  const totalSpent = filtered.filter(t=>t.isExpense).reduce((s,t)=>s+t.amount,0);
-  document.getElementById("foot-label").textContent =
-    `${filtered.length} transaction${filtered.length!==1?"s":""}`;
-  document.getElementById("foot-value").textContent = fmt(totalSpent);
+  const totalSpent=filtered.filter(t=>t.isExpense).reduce((s,t)=>s+t.amount,0);
+  document.getElementById("foot-label").textContent=`${filtered.length} transaction${filtered.length!==1?"s":""}`;
+  document.getElementById("foot-value").textContent=fmt(totalSpent);
 }
 
-// ── update summary cards ────────────────────────────────────────────────────
-function updateCards(filtered) {
-  const spent  = filtered.filter(t=>t.isExpense).reduce((s,t)=>s+t.amount,0);
-  const count  = filtered.length;
-
-  document.getElementById("card-spent").textContent     = fmt(spent);
-  document.getElementById("card-count").textContent     = fmtN(count);
-
-  // top category
-  const bycat = {};
-  filtered.filter(t=>t.isExpense).forEach(t => {
-    bycat[t.category] = (bycat[t.category]||0) + t.amount;
-  });
-  const topCat   = Object.entries(bycat).sort((a,b)=>b[1]-a[1])[0];
-  const topEl    = document.getElementById("card-top");
-  const topSubEl = document.getElementById("card-top-sub");
+// ── update summary cards ───────────────────────────────────────────────────
+function updateCards(filtered){
+  const spent=filtered.filter(t=>t.isExpense).reduce((s,t)=>s+t.amount,0);
+  document.getElementById("card-spent").textContent=fmt(spent);
+  document.getElementById("card-count").textContent=fmtN(filtered.length);
+  const bycat={};
+  filtered.filter(t=>t.isExpense).forEach(t=>{ bycat[t.category]=(bycat[t.category]||0)+t.amount; });
+  const topCat=Object.entries(bycat).sort((a,b)=>b[1]-a[1])[0];
+  const topEl=document.getElementById("card-top");
+  const topSubEl=document.getElementById("card-top-sub");
   if(topCat){
-    const s = CAT_STYLE[topCat[0]]||CAT_STYLE["Others"];
-    topEl.textContent    = topCat[0];
-    topEl.style.color    = s.color;
-    const pct = spent>0 ? (topCat[1]/spent*100).toFixed(0) : 0;
-    topSubEl.textContent = `${fmt(topCat[1])} · ${pct}% of spend`;
+    const s=CAT_STYLE[topCat[0]]||CAT_STYLE["Others"];
+    topEl.textContent=topCat[0]; topEl.style.color=s.color;
+    const pct=spent>0?(topCat[1]/spent*100).toFixed(0):0;
+    topSubEl.textContent=`${fmt(topCat[1])} · ${pct}% of spend`;
   } else {
-    topEl.textContent    = "—";
-    topEl.style.color    = "var(--blue)";
-    topSubEl.textContent = "—";
+    topEl.textContent="—"; topEl.style.color="var(--blue)"; topSubEl.textContent="—";
   }
 }
 
-// ── event listeners ─────────────────────────────────────────────────────────
-["from-day","from-month","from-year","to-day","to-month","to-year"].forEach(id => {
+// ── event listeners ────────────────────────────────────────────────────────
+["from-day","from-month","from-year","to-day","to-month","to-year"].forEach(id=>{
   document.getElementById(id).addEventListener("change", renderTable);
 });
 
-document.getElementById("reset-btn").addEventListener("click", () => {
+document.getElementById("reset-btn").addEventListener("click",()=>{
   if(!allTx.length) return;
-  const earliest = allTx[0];
-  const latest   = allTx[allTx.length-1];
-  document.getElementById("from-day").value   = earliest.day;
-  document.getElementById("from-month").value = earliest.month;
-  document.getElementById("from-year").value  = earliest.year;
-  document.getElementById("to-day").value     = latest.day;
-  document.getElementById("to-month").value   = latest.month;
-  document.getElementById("to-year").value    = latest.year;
-  activeCategory = "ALL";
-  buildPills();
-  renderTable();
+  const e=allTx[0], l=allTx[allTx.length-1];
+  document.getElementById("from-day").value=e.day;
+  document.getElementById("from-month").value=e.month;
+  document.getElementById("from-year").value=e.year;
+  document.getElementById("to-day").value=l.day;
+  document.getElementById("to-month").value=l.month;
+  document.getElementById("to-year").value=l.year;
+  activeCategory="ALL"; buildPills(); renderTable();
 });
 
-// ── init ────────────────────────────────────────────────────────────────────
-async function init() {
+// ── init ───────────────────────────────────────────────────────────────────
+async function init(){
   try {
     allTx = await fetchData();
     if(!allTx.length) throw new Error("empty");
-    document.getElementById("loading").style.display  = "none";
-    document.getElementById("app").style.display      = "block";
-    document.getElementById("config-notice").style.display = "none";
-    document.getElementById("page-sub").textContent   =
-      `${allTx.length} transactions loaded · live from Google Sheets`;
-    buildSelects(); buildPills(); renderTable();
-  } catch(err) {
-    document.getElementById("loading").style.display   = "none";
-    document.getElementById("error-msg").style.display = "block";
+    document.getElementById("loading").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("page-sub").textContent=`${allTx.length} transactions loaded · live from Google Sheets`;
+    // default donut to latest month
+    const months=[...new Set(allTx.map(t=>t.monthKey))].sort();
+    activeMonth = months[months.length-1];
+    buildSelects(); buildMonthPills(); buildPills(); renderDonut(); renderTable();
+  } catch(err){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("error-msg").style.display="block";
     console.error(err);
   }
 }
